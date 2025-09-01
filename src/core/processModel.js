@@ -1,16 +1,15 @@
 import { STATES, canTransition } from "./stateMachine";
-
-let pidCounter = 1;
+import { v4 as uuidv4 } from "uuid";
 
 export class Process {
   constructor() {
-    this.pid = pidCounter++;
+    // Usamos uuid en lugar del contador
+    this.pid = uuidv4();
     this.currentState = STATES.NEW;
     this.history = [
-      { state: STATES.NEW, timestamp: Date.now(), reason: "Proceso creado" }
+      { state: STATES.NEW, timestamp: Date.now(), reason: "Process Created" }
     ];
   }
-
   // Cambiar de estado con validación
   transition(toState, reason = "Manual") {
     if (canTransition(this.currentState, toState)) {
@@ -18,7 +17,6 @@ export class Process {
       this.history.push({ state: toState, timestamp: Date.now(), reason });
       return true;
     } else {
-      console.warn(`Transición inválida: ${this.currentState} → ${toState}`);
       return false;
     }
   }
