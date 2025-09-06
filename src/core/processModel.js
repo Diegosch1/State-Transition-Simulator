@@ -2,44 +2,92 @@ import { STATES, canTransition } from "./stateMachine";
 import { v4 as uuidv4 } from "uuid";
 
 export class Process {
-  constructor() {
-    // Usamos uuid en lugar del contador
-    this.pid = uuidv4();
+  constructor(priority = "High") {
+    // Unique process ID (6 characters)
+    this.pid = uuidv4().slice(0, 6);
     this.currentState = STATES.NEW;
+    this.priority = priority;
+    this.programCounter = 0;
+    this.registers = this.initRegisters();
+    this.syscalls = [];
     this.history = [
-      { state: STATES.NEW, timestamp: Date.now(), reason: "Process Created" }
+      { state: STATES.NEW, timestamp: Date.now(), reason: "Process Created" },
     ];
   }
-  // Cambiar de estado con validación
-  transition(toState, reason = "Manual") {
+  // Initialize CPU registers
+  initRegisters() {
+    return {
+      AX: 0,
+      BX: 0,
+      CX: 0,
+      DX: 0,
+    };
+  }
+
+  // Simulate CPU context update
+  updateCPUContext() {
+    this.programCounter += 1;
+    this.registers.AX = Math.floor(Math.random() * 100);
+    this.registers.BX = Math.floor(Math.random() * 100);
+    this.registers.CX = Math.floor(Math.random() * 100);
+    this.registers.DX = Math.floor(Math.random() * 100);
+  }
+
+  // Change process transition, update history and CPU context
+  transition(toState, reason = "") {
     if (canTransition(this.currentState, toState)) {
       this.currentState = toState;
-      this.history.push({ state: toState, timestamp: Date.now(), reason });
-      return true;
+      this.updateCPUContext();
+      this.history.push({
+        state: toState,
+        timestamp: Date.now(),
+        reason: reason,
+      });
+      return {status: true, message: "Transitioned from ${this.currentState} to ${toState} by ${reason}"};
     } else {
-      return false;
+      return {status: false, message: "Failed to transition from ${this.currentState} to ${toState} by ${reason}"};
     }
   }
 
-  // Obtener historial de transiciones
+  // Perform a syscall and attempt a state transition
+  systemCall(syscall, toState, reason = "") {
+    if (canTransition(this.currentState, toState)) {
+      this.syscalls.push({ name: syscall, timestamp: Date.now(), success: true });
+      this.updateCPUContext();
+      this.currentState = toState;
+      this.history.push({
+        state: toState,
+        timestamp: Date.now(),
+        reason: reason,
+      });
+      return {status: true, message: "Syscall ${syscall} executed and transitioned to ${toState} by ${reason}"};
+    } else {
+      this.syscalls.push({ name: syscall, timestamp: Date.now(), success: false });
+      return {status: false, message: "Failed to execute syscall ${syscall} and transition to ${toState} by ${reason}"};
+    }
+  }
+
   getHistory() {
     return this.history;
   }
 
-  // --- Nuevo: Calcular métricas directamente desde el proceso ---
+  // Calculate process metrics
   getMetrics() {
     const metrics = {
       pid: this.pid,
+      priority: this.priority,
+      programCounter: this.programCounter,
+      registers: { ...this.registers },
+      syscalls: [...this.syscalls],
       totalTransitions: this.history.length - 1,
       timeInStates: this.initStateTimes(),
-      transitions: this.history.map(h => ({
+      transitions: this.history.map((h) => ({
         state: h.state,
         timestamp: new Date(h.timestamp).toLocaleTimeString(),
-        reason: h.reason
-      }))
+        reason: h.reason,
+      })),
     };
 
-    // Calcular duración en cada estado
     for (let i = 0; i < this.history.length - 1; i++) {
       const current = this.history[i];
       const next = this.history[i + 1];
@@ -48,19 +96,16 @@ export class Process {
       metrics.timeInStates[current.state] += duration;
     }
 
-    // Último estado hasta ahora
     const last = this.history[this.history.length - 1];
     metrics.timeInStates[last.state] += Date.now() - last.timestamp;
 
     return metrics;
   }
 
-  // Exportar a JSON
   exportMetricsJSON() {
     return JSON.stringify(this.getMetrics(), null, 2);
   }
 
-  // Exportar a CSV
   exportMetricsCSV() {
     const metrics = this.getMetrics();
     const headers = "State,Time(ms)\n";
@@ -70,11 +115,11 @@ export class Process {
     return headers + rows;
   }
 
-  // Inicializa tiempos en 0
+  // Initialize metrics states to zero
   initStateTimes() {
     const times = {};
-    Object.values(STATES).forEach(state => {
-      times[state] = 0;
+    this.history.forEach((x) => {
+      times[x.state] = 0;
     });
     return times;
   }
