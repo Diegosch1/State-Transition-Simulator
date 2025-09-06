@@ -2,7 +2,7 @@ import { STATES, canTransition } from "./stateMachine";
 import { v4 as uuidv4 } from "uuid";
 
 export class Process {
-  constructor(priority = "Low") {
+  constructor(priority = "High") {
     // Unique process ID (6 characters)
     this.pid = uuidv4().slice(0, 6);
     this.currentState = STATES.NEW;
@@ -33,14 +33,6 @@ export class Process {
     this.registers.DX = Math.floor(Math.random() * 100);
   }
 
-  // Log a syscall
-  addSyscall(name) {
-    this.syscalls.push({
-      name,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
   // Change process transition, update history and CPU context
   transition(toState, reason = "") {
     if (canTransition(this.currentState, toState)) {
@@ -53,6 +45,24 @@ export class Process {
       });
       return true;
     } else {
+      return false;
+    }
+  }
+
+  // Perform a syscall and attempt a state transition
+  systemCall(syscall, toState, reason = "") {
+    if (canTransition(this.currentState, toState)) {
+      this.syscalls.push({ name: syscall, timestamp: Date.now(), success: true });
+      this.updateCPUContext();
+      this.currentState = toState;
+      this.history.push({
+        state: toState,
+        timestamp: Date.now(),
+        reason: reason,
+      });
+      return true;
+    } else {
+      this.syscalls.push({ name: syscall, timestamp: Date.now(), success: false });
       return false;
     }
   }
