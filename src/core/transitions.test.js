@@ -1,1 +1,1 @@
-// Falta implementar y mirar si se utiliza Jest para eso
+// Implement tests for process state transitions

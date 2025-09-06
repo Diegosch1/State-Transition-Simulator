@@ -43,9 +43,9 @@ export class Process {
         timestamp: Date.now(),
         reason: reason,
       });
-      return true;
+      return {status: true, message: "Transitioned from ${this.currentState} to ${toState} by ${reason}"};
     } else {
-      return false;
+      return {status: false, message: "Failed to transition from ${this.currentState} to ${toState} by ${reason}"};
     }
   }
 
@@ -60,10 +60,10 @@ export class Process {
         timestamp: Date.now(),
         reason: reason,
       });
-      return true;
+      return {status: true, message: "Syscall ${syscall} executed and transitioned to ${toState} by ${reason}"};
     } else {
       this.syscalls.push({ name: syscall, timestamp: Date.now(), success: false });
-      return false;
+      return {status: false, message: "Failed to execute syscall ${syscall} and transition to ${toState} by ${reason}"};
     }
   }
 

@@ -11,7 +11,7 @@ export const VALID_TRANSITIONS = {
   [STATES.READY]: [STATES.RUNNING],
   [STATES.RUNNING]: [STATES.READY, STATES.WAITING, STATES.TERMINATED],
   [STATES.WAITING]: [STATES.READY],
-  [STATES.TERMINATED]: [] // No puede salir
+  [STATES.TERMINATED]: [] // Cannot transition from Terminated
 };
 
 export function canTransition(fromState, toState) {
