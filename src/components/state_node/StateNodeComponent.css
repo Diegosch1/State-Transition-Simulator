@@ -35,6 +35,12 @@
   overflow-y: auto;
   font-size: 0.9rem;
 }
+.process-logo {
+    width: 24px;
+    height: 24px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
 
 .state-node-item {
   padding: 4px 6px;
@@ -48,5 +54,12 @@
 
 .state-node-item:hover {
   background: #f0f8ff;
+}
+
+.process-info{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 3px;
 }
 

@@ -44,6 +44,11 @@ function App() {
     updateProcesses();
   };
 
+  const handleResumeSimulation = () => {
+    simulationController.resumeSimulation();
+    updateProcesses();
+  };
+
   const processesByState = processes.reduce((acc, process) => {
     const state = process.currentState;
     if (!acc[state]) {
@@ -57,9 +62,10 @@ function App() {
     <div>
       <h1>Simulador de Estados</h1>
       <div className="controls">
-        <button onClick={handleCreateProcess}>Crear Proceso</button>
-        <button onClick={handleStartSimulation}>Iniciar Simulación</button>
-        <button onClick={handlePauseSimulation}>Pausar Simulación</button>
+        <button onClick={handleCreateProcess}>New Process</button>
+        <button onClick={handleStartSimulation}>Start Simulation</button>
+        <button onClick={handlePauseSimulation}>Pause Simulation</button>
+        <button onClick={handleResumeSimulation}>Resume Simulation</button>
       </div>
 
       <StateDiagramComponent className="StateDiagram"
