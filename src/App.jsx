@@ -70,6 +70,12 @@ function App() {
 
   const handleCloseReports = () => setShowReports(false);
 
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+
+  const toggleTechnicalDetails = () => {
+    setShowTechnicalDetails((prev) => !prev);
+  };
+
   return (
     <div>
       <h1>Simulador de Estados</h1>
@@ -79,6 +85,11 @@ function App() {
         <button onClick={handlePauseSimulation}>Pause Simulation</button>
         <button onClick={handleResumeSimulation}>Resume Simulation</button>
         <button onClick={handleViewReports}>View Reports</button>
+        <button onClick={toggleTechnicalDetails}>
+          {showTechnicalDetails
+            ? "Hide Technical Details"
+            : "Show Technical Details"}
+        </button>
       </div>
 
       <StateDiagramComponent
@@ -87,6 +98,7 @@ function App() {
         nodePositions={nodePositions}
         onTransition={handleTransition}
         controller={simulationController}
+        showTechnicalDetails={showTechnicalDetails}
       />
       {showReports && (
         <ProcessReports

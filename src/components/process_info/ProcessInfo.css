@@ -1,0 +1,22 @@
+.process-node {
+  border: 1px solid #ccc;
+  padding: 5px;
+  border-radius: 4px;
+  background: #242424;
+  margin-bottom: 5px;
+  cursor: pointer;
+}
+
+.process-basic .progress-bar {
+  width: 100px;
+  height: 6px;
+  background: #eee;
+  margin-top: 4px;
+  border-radius: 3px;
+}
+
+.process-basic .progress-fill {
+  height: 100%;
+  background: #4caf50;
+  border-radius: 3px;
+}
