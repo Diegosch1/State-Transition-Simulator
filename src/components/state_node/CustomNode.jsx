@@ -17,7 +17,7 @@ const CustomNode = ({ data }) => {
         <div style={{ minWidth: 120, minHeight: 80 }}>
             <StateNodeComponent
                 name={name}
-                items={items.map(p => p.pid)}
+                items={items.filter(p => p.currentState === name)} // solo los que están en este nodo
                 onTransition={onTransition}
                 controller={controller}
             />

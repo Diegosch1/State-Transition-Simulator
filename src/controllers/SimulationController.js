@@ -9,6 +9,7 @@ export class SimulationController {
     this.processGeneratorTimeout = null;
     this.onTransition = null; // función callback para UI
     this.logoCount = 34; // cantidad de logos en la carpeta
+    this.newProcessQueue = new Set(); // procesos en NEW que esperan render
   }
 
   // --- Métodos de gestión de procesos ---
@@ -17,7 +18,7 @@ export class SimulationController {
 
     // Asignar un logo aleatorio al proceso
     const logoIndex = Math.floor(Math.random() * this.logoCount) + 1;
-    process.logo = `/logos/${logoIndex}.svg`; // asegúrate que la ruta sea accesible desde tu React
+    process.logo = `/logos/${logoIndex}.svg`;
 
     return process.pid;
   }
@@ -104,7 +105,7 @@ export class SimulationController {
     }
   }
 
-  // --- Generación de procesos aleatorios (recursiva) ---
+  // --- Generación de procesos aleatorios ---
   scheduleRandomProcess() {
     if (this.isPaused) return;
 
@@ -114,18 +115,17 @@ export class SimulationController {
         const pid = this.createProcess();
         this.notifyNewProcess(pid);
         console.log(`Generated new process ${pid} in state NEW`);
-        this.scheduleRandomProcess(); // programar siguiente
+        this.scheduleRandomProcess();
       }
     }, delay);
   }
 
-  // --- Paso automático por todos los procesos activos ---
+  // --- Paso automático por procesos activos ---
   async autoStep() {
     const processes = this.processManager.getAllProcesses();
     const activeProcesses = processes.filter(p => p.currentState !== STATES.TERMINATED);
 
     if (this.isPaused) return;
-
     if (activeProcesses.length === 0) {
       console.log("All processes are TERMINATED. Pausing simulation.");
       this.pauseSimulation();
@@ -133,11 +133,23 @@ export class SimulationController {
     }
 
     for (const process of activeProcesses) {
+      if (process.currentState === STATES.NEW && !this.newProcessQueue.has(process.pid)) {
+        this.newProcessQueue.add(process.pid);
+        this.notifyNewProcess(process.pid);
+
+        // esperar a que la UI renderice antes de pasar a READY
+        await new Promise(resolve => requestAnimationFrame(() => {
+          requestAnimationFrame(resolve); // doble requestAnimationFrame asegura render completo
+        }));
+
+        this.newProcessQueue.delete(process.pid);
+      }
+
       await this.transitionProcessOnce(process);
     }
   }
 
-  // --- Transición de un solo proceso con delay ---
+  // --- Transición de un proceso ---
   async transitionProcessOnce(process) {
     const fromState = process.currentState;
     let result;
@@ -146,8 +158,8 @@ export class SimulationController {
     if (this.isPaused) return;
 
     switch (fromState) {
-      case STATES.NEW:
-        reason = "Automatic: Admission";
+      case STATES.NEW:        
+        reason = "Automatic: Admission";        
         result = this.admitProcess(process.pid);
         break;
       case STATES.READY:
@@ -156,13 +168,13 @@ export class SimulationController {
         break;
       case STATES.RUNNING:
         const rand = Math.random();
-        if (rand < 0.15) { // 15% I/O Request
+        if (rand < 0.15) {
           reason = "Automatic: I/O Request";
           result = this.requestIO(process.pid);
-        } else if (rand < 0.85) { // 70% Process Finished
+        } else if (rand < 0.85) {
           reason = "Automatic: Process Finished";
           result = this.terminateProcess(process.pid);
-        } else { // 15% Quantum Expired
+        } else {
           reason = "Automatic: Quantum Expired";
           result = this.preemptProcess(process.pid);
         }
@@ -176,17 +188,17 @@ export class SimulationController {
     }
 
     if (result?.status && typeof this.onTransition === "function") {
-      this.onTransition({
-        pid: process.pid,   // solo pid
-        fromState,
-        toState: process.currentState,
-        reason,
-        timestamp: new Date()
-      });
+      const fullProcess = { ...this.getProcesses().find(p => p.pid === process.pid) };
+      if (fullProcess.currentState !== STATES.NEW || fromState !== STATES.NEW) {
+        this.onTransition({        
+          process: fullProcess,
+          fromState,
+          toState: fullProcess.currentState,
+          reason,
+          timestamp: new Date()
+        });
+      }
     }
-
-
-    console.log(`Process ${process.pid} transitioned from ${fromState} to ${process.currentState} due to: ${reason}`);
 
     await new Promise(resolve => setTimeout(resolve, this.simulationSpeed));
   }
@@ -197,7 +209,8 @@ export class SimulationController {
 
     if (typeof this.onTransition === "function") {
       this.onTransition({
-        pid: pid,
+        pid: process.pid,
+        process: { ...process },
         fromState: null,
         toState: STATES.NEW,
         reason: "Process created",
@@ -205,7 +218,6 @@ export class SimulationController {
       });
     }
   }
-
 
   generateReport() {
     const reports = {};
