@@ -13,6 +13,9 @@ export class Process {
     this.history = [
       { state: STATES.NEW, timestamp: Date.now(), reason: "Process Created" },
     ];
+    const logoIndex = Math.floor(Math.random() * 34) + 1;
+    this.logo = `/logos/${logoIndex}.svg`;    
+    
   }
   // Initialize CPU registers
   initRegisters() {

@@ -17,7 +17,7 @@ const CustomNode = ({ data }) => {
         <div style={{ minWidth: 120, minHeight: 80 }}>
             <StateNodeComponent
                 name={name}
-                items={items}
+                items={items.map(p => p.pid)}
                 onTransition={onTransition}
                 controller={controller}
             />

@@ -58,6 +58,36 @@ const StateDiagramComponent = ({
     setNodes((nds) => applyNodeChanges(changes, nds));
   };
 
+  // Actualizar nodos cuando ocurre transición
+  useEffect(() => {
+    if (!onTransition) return;
+
+    controller.onTransition = ({ pid, fromState, toState, reason, timestamp }) => {
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id === fromState) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                items: node.data.items.filter((p) => p.pid !== pid),
+              },
+            };
+          } else if (node.id === toState) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                items: [...(node.data.items || []), { pid }],
+              },
+            };
+          }
+          return node;
+        })
+      );
+    };
+  }, [controller, onTransition]);
+
   return (
     <div style={{ width: "100%", height: "600px" }}>
       <ReactFlow
