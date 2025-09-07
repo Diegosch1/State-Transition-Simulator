@@ -1,5 +1,6 @@
+// simulationController.js
 import { ProcessManager } from './processManager';
-import { STATES } from './processModel';
+import { STATES } from '../core/stateMachine';
 
 export class SimulationController {
   constructor() {
@@ -8,7 +9,8 @@ export class SimulationController {
     this.isPaused = true;
     this.autoTransitionInterval = null;
   }
-  
+
+  // --- Métodos de gestión de procesos ---
   createProcess() {
     return this.processManager.createProcess().pid;
   }
@@ -16,46 +18,52 @@ export class SimulationController {
   getProcesses() {
     return this.processManager.getAllProcesses();
   }
-  
-  getProcess(pid) {
-    return this.processes.get(pid);
-  }
-
+    
+  // --- Métodos de transición manual (ahora con manejo de respuesta) ---
   admitProcess(pid) {
     const process = this.processManager.getProcess(pid);
-    if (!process) return false;
+    if (!process) return { status: false, message: "Process not found." };
     return process.transition(STATES.READY, "Admitido al sistema");
   }
 
   assignCPU(pid) {
     const process = this.processManager.getProcess(pid);
-    if (!process) return false;
+    if (!process) return { status: false, message: "Process not found." };
     return process.transition(STATES.RUNNING, "Asignación de CPU");
   }
 
+  // Ahora, para la solicitud de E/S, usamos el método 'systemCall'
   requestIO(pid) {
-    const process = this.getProcess(pid);
-    if (!process) return false;
-    return process.transition(STATES.BLOCKED, "Solicitud de E/S");
+    const process = this.processManager.getProcess(pid);
+    if (!process) return { status: false, message: "Process not found." };
+    return process.systemCall('I/O Request', STATES.WAITING, "Solicitud de E/S");
   }
 
   completeIO(pid) {
-    const process = this.getProcess(pid);
-    if (!process) return false;
+    const process = this.processManager.getProcess(pid);
+    if (!process) return { status: false, message: "Process not found." };
     return process.transition(STATES.READY, "E/S completada");
   }
 
-  terminateProcess(pid) {
-    const process = this.getProcess(pid);
-    if (!process) return false;
-    const success = process.transition(STATES.TERMINATED, "Proceso finalizado");
-    if (success) {
-      // Opcional: remover el proceso terminado del mapa si ya no es necesario
-      // this.processes.delete(pid);
-    }
-    return success;
+  // --- NUEVO MÉTODO AÑADIDO: Desalojo (Preemption) ---
+  preemptProcess(pid) {
+    const process = this.processManager.getProcess(pid);
+    if (!process) return { status: false, message: "Process not found." };
+    // El 'reason' es crucial para documentar la transición
+    return process.transition(STATES.READY, "Expulsión por fin de quantum");
   }
 
+  terminateProcess(pid) {
+    const process = this.processManager.getProcess(pid);
+    if (!process) return { status: false, message: "Process not found." };
+    const result = process.transition(STATES.TERMINATED, "Proceso finalizado");
+    if (result.status) {
+      // this.processManager.deleteProcess(pid);
+    }
+    return result;
+  }
+
+  // --- Controles de simulación ---
   startSimulation() {
     if (!this.isPaused) return;
     this.isPaused = false;
@@ -80,9 +88,17 @@ export class SimulationController {
   }
 
   performAutoTransitions() {
-    this.processes.forEach(process => {
+    this.processManager.getAllProcesses().forEach(process => {
+      // Regla 1: Admisión automática
       if (process.currentState === STATES.NEW) {
-        process.transition(STATES.READY, "Admitido automáticamente");
+        this.admitProcess(process.pid); 
+      }
+      
+      // Regla 2: Desalojo automático (simulación simple)
+      // Aquí podrías añadir una lógica más compleja, como un temporizador
+      // para cada proceso, o una prioridad.
+      if (process.currentState === STATES.RUNNING) {
+        this.preemptProcess(process.pid);
       }
     });
   }
