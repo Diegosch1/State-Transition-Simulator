@@ -1,23 +1,75 @@
-
-import React from "react";
+import React, { useState } from "react";
 import StateDiagramComponent from "./components/state_diagram/StateDiagramComponent";
+import { SimulationController } from "./controllers/SimulationController";
+import "./App.css";
 
+const simulationController = new SimulationController();
 
+const initialNodePositions = {
+  New: { x: 10, y: 100 },
+  Ready: { x: 300, y: 100 },
+  Running: { x: 600, y: 100 },
+  Waiting: { x: 600, y: 300 },
+  Terminated: { x: 950, y: 100 },
+};
 
 function App() {
-  const processes = {
-    New: [{ pid: 1 }, { pid: 2 }],
-    Ready: [{ pid: 3 }],
-    Running: [{ pid: 4 }],
-    Waiting: [],
-    Terminated: [],
+  const [processes, setProcesses] = useState([]);
+  const [nodePositions] = useState(initialNodePositions);
+
+  const updateProcesses = () => {
+    setProcesses(simulationController.getProcesses().map((p) => ({ ...p })));
   };
+
+  const handleTransition = (pid, controllerMethod) => {
+    const result = controllerMethod(pid);
+    if (result && result.status === false) {
+      console.error(result.message);
+    }
+    updateProcesses();
+  };
+
+  const handleCreateProcess = () => {
+    simulationController.createProcess();
+    updateProcesses();
+  };
+
+  const handleStartSimulation = () => {
+    simulationController.startSimulation();
+    updateProcesses();
+  };
+
+  const handlePauseSimulation = () => {
+    simulationController.pauseSimulation();
+    updateProcesses();
+  };
+
+  const processesByState = processes.reduce((acc, process) => {
+    const state = process.currentState;
+    if (!acc[state]) {
+      acc[state] = [];
+    }
+    acc[state].push(process);
+    return acc;
+  }, {});
 
   return (
     <div>
       <h1>Simulador de Estados</h1>
-      <StateDiagramComponent nodesData={processes} />
+      <div className="controls">
+        <button onClick={handleCreateProcess}>Crear Proceso</button>
+        <button onClick={handleStartSimulation}>Iniciar Simulación</button>
+        <button onClick={handlePauseSimulation}>Pausar Simulación</button>
+      </div>
+
+      <StateDiagramComponent className="StateDiagram"
+        nodesData={processesByState}
+        nodePositions={nodePositions}
+        onTransition={handleTransition}
+        controller={simulationController}
+      />
     </div>
-  );}
+  );
+}
 
 export default App;
