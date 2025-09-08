@@ -40,4 +40,8 @@ export class ProcessManager {
   deleteProcess(pid) {
     return this.processes.delete(pid);
   }
+
+  clearProcesses() {
+    this.processes = new Map();
+  }
 }

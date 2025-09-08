@@ -3,7 +3,7 @@ import { STATES } from "../../core/stateMachine";
 import ProcessInfo from "../process_info/ProcessInfo";
 import "./StateNodeComponent.css";
 
-export default function ProcessItem({ process, onTransition, showTechnicalDetails }) {
+export default function ProcessItem({ process, onTransition, controller, showTechnicalDetails }) {
   const [hover, setHover] = React.useState(false);
 
   return (
@@ -29,23 +29,35 @@ export default function ProcessItem({ process, onTransition, showTechnicalDetail
         {process.pid}
       </div>
 
-      {/* Botones según el estado */}
       {process.currentState === STATES.NEW && (
-        <button onClick={() => onTransition(process)}>Admitir</button>
+        <button onClick={() => onTransition(process.pid, controller.admitProcess.bind(controller))}>
+          ▶
+        </button>
       )}
       {process.currentState === STATES.READY && (
-        <button onClick={() => onTransition(process)}>Asignar CPU</button>
+        <button onClick={() => onTransition(process.pid, controller.assignCPU.bind(controller))}>
+          ▶
+        </button>
       )}
       {process.currentState === STATES.RUNNING && (
         <>
-          <button onClick={() => onTransition(process)}>Solicitar E/S</button>
-          <button onClick={() => onTransition(process)}>Desalojar</button>
-          <button onClick={() => onTransition(process)}>Terminar</button>
+          <button onClick={() => onTransition(process.pid, controller.requestIO.bind(controller))}>
+            ⌛
+          </button>
+          <button onClick={() => onTransition(process.pid, controller.preemptProcess.bind(controller))}>
+            ⛔
+          </button>
+          <button onClick={() => onTransition(process.pid, controller.terminateProcess.bind(controller))}>
+            ✅
+          </button>
         </>
       )}
       {process.currentState === STATES.WAITING && (
-        <button onClick={() => onTransition(process)}>Liberar E/S</button>
+        <button onClick={() => onTransition(process.pid, controller.completeIO.bind(controller))}>
+          Liberar E/S
+        </button>
       )}
+
     </li>
   );
 };

@@ -12,9 +12,8 @@ const CustomNode = ({ data }) => {
         border: 'none',
     };
 
-
     return (
-        <div style={{ minWidth: 120, minHeight: 80 }}>
+        <div id={`node-${name}`} data-id={name} style={{ minWidth: 120, minHeight: 80 }}>
             <StateNodeComponent
                 name={name}
                 items={items.filter(p => p.currentState === name)} // solo los que están en este nodo
@@ -32,7 +31,6 @@ const CustomNode = ({ data }) => {
             <Handle type="target" position={Position.Top} id="top" style={handleStyle} />
             <Handle type="target" position={Position.Right} id="right" style={handleStyle} />
             <Handle type="target" position={Position.Bottom} id="bottom" style={handleStyle} />
-
         </div>
     );
 };

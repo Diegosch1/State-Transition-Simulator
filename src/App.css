@@ -1,47 +1,60 @@
-#root {
-  width: 100%;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;  
-  
+.app-container {
+  display: grid;
+  grid-template-columns: 20% 80%; /* sidebar 20%, main 80% */
+  height: 100vh;
+  width: 100vw;
+}
+h1 {
+  text-align: center;
+  margin-bottom: 1rem;  
+}
+.sidebar {
+  background: #1f2937;
+  color: white;
+  padding: 1rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.operation-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  margin-top: 1.5rem;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.main-content {
+  padding: 1rem;
+  overflow: auto;  
+}
+.player-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem; /* separación entre botones */
+  margin-top: 1rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.player-controls button {
+  background: #374151; /* gris oscuro */
+  border: none;
+  border-radius: 50%; /* hace el botón redondo */
+  width: 50px;
+  height: 50px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
 }
 
-.card {
-  padding: 2em;
+.player-controls button:hover {
+  background: #4b5563;
+  transform: scale(1.1);
 }
 
-.read-the-docs {
-  color: #888;
+h2 {
+  text-align: center;
+  font-size: 1.8rem;
 }
 
-.StateDiagram {
-  margin-top: 20rem;
-}
