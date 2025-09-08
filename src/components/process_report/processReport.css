@@ -1,0 +1,33 @@
+/* Sidebar deslizante desde la derecha */
+.report-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px; /* ancho del panel */
+  height: 100vh; /* altura completa */
+  border-left: 1px solid #ccc;
+  background-color: #242424;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  overflow-y: auto;
+  z-index: 1000;
+  transition: transform 0.3s ease-in-out;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.report-sidebar table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.report-sidebar th,
+.report-sidebar td {
+  border: 1px solid #ccc;
+  padding: 5px;
+}

@@ -30,7 +30,7 @@ const EDGES = [
   },
 }));
 
-const StateDiagramComponent = ({ nodesData, onTransition, controller, nodePositions }) => {
+const StateDiagramComponent = ({ nodesData, onTransition, controller, nodePositions, showTechnicalDetails }) => {
   const [nodes, setNodes] = useState([]);
   const [animatedLogos, setAnimatedLogos] = useState([]);
 
@@ -61,6 +61,7 @@ const StateDiagramComponent = ({ nodesData, onTransition, controller, nodePositi
         items: [],
         onTransition,
         controller,
+        showTechnicalDetails,
       },
     }));
     setNodes(initialNodes);

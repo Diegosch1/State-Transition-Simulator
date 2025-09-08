@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import StateDiagramComponent from "./components/state_diagram/StateDiagramComponent";
 import { SimulationController } from "./controllers/SimulationController";
+import ProcessReports from "./components/process_report/ProcessReport";
 import "./App.css";
 
 const simulationController = new SimulationController();
@@ -58,6 +59,23 @@ function App() {
     return acc;
   }, {});
 
+  const [showReports, setShowReports] = useState(false);
+  const [reportsData, setReportsData] = useState([]);
+
+  const handleViewReports = () => {
+    const reports = simulationController.generateReport();
+    setReportsData(Object.values(reports));
+    setShowReports(true);
+  };
+
+  const handleCloseReports = () => setShowReports(false);
+
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+
+  const toggleTechnicalDetails = () => {
+    setShowTechnicalDetails((prev) => !prev);
+  };
+
   return (
     <div>
       <h1>Simulador de Estados</h1>
@@ -66,14 +84,28 @@ function App() {
         <button onClick={handleStartSimulation}>Start Simulation</button>
         <button onClick={handlePauseSimulation}>Pause Simulation</button>
         <button onClick={handleResumeSimulation}>Resume Simulation</button>
+        <button onClick={handleViewReports}>View Reports</button>
+        <button onClick={toggleTechnicalDetails}>
+          {showTechnicalDetails
+            ? "Hide Technical Details"
+            : "Show Technical Details"}
+        </button>
       </div>
 
-      <StateDiagramComponent className="StateDiagram"
+      <StateDiagramComponent
+        className="StateDiagram"
         nodesData={processesByState}
         nodePositions={nodePositions}
         onTransition={handleTransition}
         controller={simulationController}
+        showTechnicalDetails={showTechnicalDetails}
       />
+      {showReports && (
+        <ProcessReports
+          reportsData={reportsData}
+          onClose={handleCloseReports}
+        />
+      )}
     </div>
   );
 }

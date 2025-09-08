@@ -3,7 +3,7 @@ import StateNodeComponent from "./StateNodeComponent";
 import { Handle, Position } from "reactflow";
 
 const CustomNode = ({ data }) => {
-    const { name, items, onTransition, controller } = data;
+    const { name, items, onTransition, controller, showTechnicalDetails } = data;
 
     const handleStyle = {
         width: 1,
@@ -20,6 +20,7 @@ const CustomNode = ({ data }) => {
                 items={items.filter(p => p.currentState === name)} // solo los que están en este nodo
                 onTransition={onTransition}
                 controller={controller}
+                showTechnicalDetails={showTechnicalDetails}
             />
 
             <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
