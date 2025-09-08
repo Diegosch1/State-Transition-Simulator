@@ -182,11 +182,10 @@ const StateDiagramComponent = ({ nodesData, onTransition, controller, nodePositi
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        nodeTypes={nodeTypes}
-        fitView
+        nodeTypes={nodeTypes}        
         onNodesChange={onNodesChange}
       >
-        <Background gap={20} color="#aaa" />
+        <Background gap={25} color="#aaa" />
         <Controls />
       </ReactFlow>
 
