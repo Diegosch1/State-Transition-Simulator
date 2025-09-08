@@ -4,6 +4,7 @@ import "./ProcessInfo.css";
 export default function ProcessInfo({ process, showTechnicalDetails, hover }) {
   // Extract time in current state for progress bar
   const timeInCurrentState = process.timeInStates?.[process.currentState] || 0;
+  const processMetrics = process.getMetrics();
 
   // Only show details on hover
   if (!hover) return null;
@@ -40,9 +41,6 @@ export default function ProcessInfo({ process, showTechnicalDetails, hover }) {
             <strong>PID:</strong> {process.pid}
           </p>
           <p>
-            <strong>Priority:</strong> {process.priority}
-          </p>
-          <p>
             <strong>Program Counter:</strong> {process.programCounter}
           </p>
           <p>
@@ -50,28 +48,30 @@ export default function ProcessInfo({ process, showTechnicalDetails, hover }) {
             {process.registers.BX}, CX: {process.registers.CX}, DX:{" "}
             {process.registers.DX}
           </p>
-          <p>
-            <strong>Syscalls:</strong>{" "}
-            {process.syscalls.map((s) => s.name).join(", ")}
-          </p>
+          {process.syscalls.length > 0 && (
+            <p>
+              <strong>Syscalls:</strong>{" "}
+              {process.syscalls.map((s) => s.name).join(", ")}
+            </p>
+          )}
           <p>
             <strong>State Times (ms):</strong>
           </p>
           <ul>
-            {Object.entries(process.timeInStates || {}).map(([state, time]) => (
+            {Object.entries(processMetrics.timeInStates || {}).map(([state, time]) => (
               <li key={state}>
                 {state}: {time} ms
               </li>
             ))}
           </ul>
           <p>
-            <strong>Total Transitions:</strong> {process.totalTransitions}
+            <strong>Total Transitions:</strong> {processMetrics.totalTransitions}
           </p>
           <p>
             <strong>Transition Events:</strong>
           </p>
           <ul>
-            {process.transitions?.map((t, i) => (
+            {processMetrics.transitions?.map((t, i) => (
               <li key={i}>
                 {t.state} - {t.reason} - {t.timestamp}
               </li>
