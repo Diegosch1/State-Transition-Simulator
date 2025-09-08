@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./ProcessInfo.css";
 
-export default function ProcessInfo({ process, showTechnicalDetails, hover, isPaused }) {
+export default function ProcessInfo({ process, showTechnicalDetails, hover, controller }) {
   const processMetrics = typeof process.getMetrics === "function" ? process.getMetrics() : {};
   const currentState = process.currentState;
   const [timeInCurrentState, setTimeInCurrentState] = useState(
@@ -9,16 +9,17 @@ export default function ProcessInfo({ process, showTechnicalDetails, hover, isPa
   );
 
   useEffect(() => {
-    if (isPaused) return; // 👈 si está en pausa, no actualizamos nada
-
     const interval = setInterval(() => {
+      if (controller?.getIsPaused?.()) return;
+
       const updatedMetrics =
         typeof process.getMetrics === "function" ? process.getMetrics() : {};
       setTimeInCurrentState(updatedMetrics.timeInStates?.[currentState] || 0);
-    }, 500);
-
+    }, 500);    
+    
     return () => clearInterval(interval);
-  }, [isPaused, currentState, process]);
+  }, [currentState, process, controller]);
+
 
   if (!hover) return null;
 
@@ -34,8 +35,7 @@ export default function ProcessInfo({ process, showTechnicalDetails, hover, isPa
     );
   }
 
-
-  // --- VISTA TÉCNICA (igual que antes) ---
+  // --- VISTA TÉCNICA ---
   return (
     <div className="process-node">
       <div className="process-technical">

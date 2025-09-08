@@ -17,6 +17,7 @@ export default function ProcessItem({ process, onTransition, controller, showTec
         process={process}
         showTechnicalDetails={showTechnicalDetails}
         hover={hover}
+        controller={controller}
       />
       <div className="process-info">
         <img
