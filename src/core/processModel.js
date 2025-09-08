@@ -2,8 +2,7 @@ import { STATES, canTransition } from "./stateMachine";
 import { v4 as uuidv4 } from "uuid";
 
 export class Process {
-  constructor(priority = "High") {
-    // Unique process ID (6 characters)
+  constructor(priority = "High", controller = null) {
     this.pid = uuidv4().slice(0, 6);
     this.currentState = STATES.NEW;
     this.priority = priority;
@@ -14,20 +13,16 @@ export class Process {
       { state: STATES.NEW, timestamp: Date.now(), reason: "Process Created" },
     ];
     const logoIndex = Math.floor(Math.random() * 34) + 1;
-    this.logo = `/logos/${logoIndex}.svg`;    
+    this.logo = `/logos/${logoIndex}.svg`;
     
-  }
-  // Initialize CPU registers
-  initRegisters() {
-    return {
-      AX: 0,
-      BX: 0,
-      CX: 0,
-      DX: 0,
-    };
+    // referencia al controlador para saber si está en pausa
+    this.controller = controller;
   }
 
-  // Simulate CPU context update
+  initRegisters() {
+    return { AX: 0, BX: 0, CX: 0, DX: 0 };
+  }
+
   updateCPUContext() {
     this.programCounter += 1;
     this.registers.AX = Math.floor(Math.random() * 100);
@@ -36,37 +31,36 @@ export class Process {
     this.registers.DX = Math.floor(Math.random() * 100);
   }
 
-  // Change process transition, update history and CPU context
   transition(toState, reason = "") {
     if (canTransition(this.currentState, toState)) {
+      const fromState = this.currentState;
       this.currentState = toState;
       this.updateCPUContext();
       this.history.push({
         state: toState,
         timestamp: Date.now(),
-        reason: reason,
+        reason,
       });
-      return {status: true, message: "Transitioned from ${this.currentState} to ${toState} by ${reason}"};
-    } else {
-      return {status: false, message: "Failed to transition from ${this.currentState} to ${toState} by ${reason}"};
+      return { status: true, message: `Transitioned from ${fromState} to ${toState} by ${reason}` };
     }
+    return { status: false, message: `Failed to transition from ${this.currentState} to ${toState} by ${reason}` };
   }
 
-  // Perform a syscall and attempt a state transition
   systemCall(syscall, toState, reason = "") {
     if (canTransition(this.currentState, toState)) {
       this.syscalls.push({ name: syscall, timestamp: Date.now(), success: true });
       this.updateCPUContext();
+      const fromState = this.currentState;
       this.currentState = toState;
       this.history.push({
         state: toState,
         timestamp: Date.now(),
-        reason: reason,
+        reason,
       });
-      return {status: true, message: "Syscall ${syscall} executed and transitioned to ${toState} by ${reason}"};
+      return { status: true, message: `Syscall ${syscall} executed and transitioned to ${toState} by ${reason}` };
     } else {
       this.syscalls.push({ name: syscall, timestamp: Date.now(), success: false });
-      return {status: false, message: "Failed to execute syscall ${syscall} and transition to ${toState} by ${reason}"};
+      return { status: false, message: `Failed to execute syscall ${syscall} and transition to ${toState} by ${reason}` };
     }
   }
 
@@ -74,7 +68,6 @@ export class Process {
     return this.history;
   }
 
-  // Calculate process metrics
   getMetrics() {
     const metrics = {
       pid: this.pid,
@@ -95,12 +88,15 @@ export class Process {
       const current = this.history[i];
       const next = this.history[i + 1];
       const duration = next.timestamp - current.timestamp;
-
       metrics.timeInStates[current.state] += duration;
     }
 
     const last = this.history[this.history.length - 1];
-    metrics.timeInStates[last.state] += Date.now() - last.timestamp;
+
+    // ❌ Solo sumar tiempo si no está en pausa
+    if (!this.controller?.getIsPaused?.()) {
+      metrics.timeInStates[last.state] += Date.now() - last.timestamp;
+    }
 
     return metrics;
   }
@@ -118,12 +114,9 @@ export class Process {
     return headers + rows;
   }
 
-  // Initialize metrics states to zero
   initStateTimes() {
     const times = {};
-    this.history.forEach((x) => {
-      times[x.state] = 0;
-    });
+    this.history.forEach((x) => { times[x.state] = 0; });
     return times;
   }
 }

@@ -35,6 +35,7 @@ const StateNodeComponent = ({
             onTransition={onTransition}
             controller={controller}
             showTechnicalDetails={showTechnicalDetails}
+          
           />
         ))}
     </ul>

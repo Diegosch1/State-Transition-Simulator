@@ -9,8 +9,8 @@ export class ProcessManager {
    * Crea y añade un nuevo proceso a la colección.
    * @returns {Process} El nuevo objeto de proceso.
    */
-  createProcess() {
-    const newProcess = new Process();
+  createProcess(controller = null) {
+    const newProcess = new Process("High", controller);
     this.processes.set(newProcess.pid, newProcess);
     return newProcess;
   }

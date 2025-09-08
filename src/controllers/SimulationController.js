@@ -14,7 +14,7 @@ export class SimulationController {
 
   // --- Métodos de gestión de procesos ---
   createProcess() {
-    const process = this.processManager.createProcess();
+    const process = this.processManager.createProcess(this);
 
     // Asignar un logo aleatorio al proceso
     const logoIndex = Math.floor(Math.random() * this.logoCount) + 1;
@@ -114,16 +114,19 @@ export class SimulationController {
     }
   }
 
+  getIsPaused(){
+    return this.isPaused;
+  }
+
   // --- Generación de procesos aleatorios ---
   scheduleRandomProcess() {
     if (this.isPaused) return;
 
-    const delay = Math.floor(Math.random() * 3000) + this.simulationSpeed; // 5-10s
+    const delay = Math.floor(Math.random() * 3000) + this.simulationSpeed;
     this.processGeneratorTimeout = setTimeout(() => {
       if (!this.isPaused) {
         const pid = this.createProcess();
-        this.notifyNewProcess(pid);
-        console.log(`Generated new process ${pid} in state NEW`);
+        this.notifyNewProcess(pid);        
         this.scheduleRandomProcess();
       }
     }, delay);

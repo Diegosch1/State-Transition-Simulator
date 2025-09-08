@@ -4,6 +4,7 @@ import { SimulationController } from "./controllers/SimulationController";
 import ProcessReports from "./components/process_report/ProcessReport";
 import { FaPlay, FaPause, FaStepForward } from "react-icons/fa";
 import "./App.css";
+import { STATES } from "./core/stateMachine";
 
 const simulationController = new SimulationController();
 
@@ -20,8 +21,9 @@ function App() {
   const [nodePositions] = useState(initialNodePositions);
 
   const updateProcesses = () => {
-    setProcesses(simulationController.getProcesses().map((p) => ({ ...p })));
-  };
+  const updated = simulationController.getProcesses().map((p) => ({ ...p }));
+  setProcesses(updated);
+};
 
   const handleTransition = (pid, controllerMethod) => {
     const processesBefore = simulationController.getProcesses();
@@ -53,7 +55,7 @@ function App() {
     simulationController.clearProcesses();
 
     console.log(simulationController.getProcesses()); // Debería estar vacío
-    
+
 
     updateProcesses();
   };
@@ -100,6 +102,9 @@ function App() {
   const handleCloseReports = () => setShowReports(false);
 
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+  // App.jsx
+  // const [isPaused, setIsPaused] = useState(simulationController.getIsPaused()); // ✅ bien inicializado
+
 
   const toggleTechnicalDetails = () => {
     setShowTechnicalDetails((prev) => !prev);
@@ -138,7 +143,7 @@ function App() {
           nodePositions={nodePositions}
           onTransition={handleTransition}
           controller={simulationController}
-          showTechnicalDetails={showTechnicalDetails}
+          showTechnicalDetails={showTechnicalDetails}          
         />
         {showReports && (
           <ProcessReports
