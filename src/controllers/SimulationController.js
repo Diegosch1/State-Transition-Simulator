@@ -4,7 +4,7 @@ import { STATES } from '../core/stateMachine';
 export class SimulationController {
   constructor() {
     this.processManager = new ProcessManager();
-    this.simulationSpeed = 3000; // ms delay para animación
+    this.simulationSpeed = 2000; // ms delay para animación
     this.isPaused = true;
     this.processGeneratorTimeout = null;
     this.onTransition = null; // función callback para UI
@@ -32,6 +32,15 @@ export class SimulationController {
     if (!process) return { status: false, message: "Process not found." };
     return process.transition(STATES.READY, "Admitted to system");
   }
+
+  clearProcesses() {
+    this.pauseSimulation();
+    this.processManager.clearProcesses();
+    this.newProcessQueue.clear();
+    this.isPaused = true;
+  }
+
+
 
   assignCPU(pid) {
     const process = this.processManager.getProcess(pid);
@@ -109,7 +118,7 @@ export class SimulationController {
   scheduleRandomProcess() {
     if (this.isPaused) return;
 
-    const delay = Math.floor(Math.random() * 5000) + 5000; // 5-10s
+    const delay = Math.floor(Math.random() * 3000) + this.simulationSpeed; // 5-10s
     this.processGeneratorTimeout = setTimeout(() => {
       if (!this.isPaused) {
         const pid = this.createProcess();
@@ -158,8 +167,8 @@ export class SimulationController {
     if (this.isPaused) return;
 
     switch (fromState) {
-      case STATES.NEW:        
-        reason = "Automatic: Admission";        
+      case STATES.NEW:
+        reason = "Automatic: Admission";
         result = this.admitProcess(process.pid);
         break;
       case STATES.READY:
@@ -190,7 +199,7 @@ export class SimulationController {
     if (result?.status && typeof this.onTransition === "function") {
       const fullProcess = { ...this.getProcesses().find(p => p.pid === process.pid) };
       if (fullProcess.currentState !== STATES.NEW || fromState !== STATES.NEW) {
-        this.onTransition({        
+        this.onTransition({
           process: fullProcess,
           fromState,
           toState: fullProcess.currentState,
@@ -200,7 +209,7 @@ export class SimulationController {
       }
     }
 
-    await new Promise(resolve => setTimeout(resolve, this.simulationSpeed));
+    await new Promise(resolve => setTimeout(resolve, this.simulationSpeed / 2));
   }
 
   notifyNewProcess(pid) {

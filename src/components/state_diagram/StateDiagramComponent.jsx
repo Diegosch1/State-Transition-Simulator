@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -13,10 +13,10 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-const EDGES = [
+const BASE_EDGES = [
   { id: "new-ready", source: "New", target: "Ready", targetHandle: "left" },
   { id: "ready-running", source: "Ready", target: "Running" },
-  { id: "running-ready", source: "Running", target: "Ready", targetHandle: "right", sourceHandle: "left" },
+  { id: "running-ready", source: "Running", target: "Ready", targetHandle: "top", sourceHandle: "top" },
   { id: "running-waiting", source: "Running", target: "Waiting", sourceHandle: "bottom", targetHandle: "top" },
   { id: "waiting-ready", source: "Waiting", target: "Ready", targetHandle: "bottom", sourceHandle: "left" },
   { id: "running-terminated", source: "Running", target: "Terminated" },
@@ -32,13 +32,14 @@ const EDGES = [
 
 const StateDiagramComponent = ({ nodesData, onTransition, controller, nodePositions, showTechnicalDetails }) => {
   const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState(BASE_EDGES);
   const [animatedLogos, setAnimatedLogos] = useState([]);
+  const containerRef = useRef(null);
 
   // Función para actualizar nodos con datos actuales
   const updateNodesData = () => {
     const allProcesses = controller.getProcesses();
-    
-    setNodes(currentNodes => 
+    setNodes(currentNodes =>
       currentNodes.map(node => ({
         ...node,
         data: {
@@ -78,63 +79,109 @@ const StateDiagramComponent = ({ nodesData, onTransition, controller, nodePositi
     setNodes((nds) => applyNodeChanges(changes, nds));
   };
 
+  // Helper robusto para localizar el nodo en pantalla
+  const getNodeViewportCenter = (state) => {
+    const elById = document.getElementById(`node-${state}`);
+    const el = elById || document.querySelector(`[data-id='${state}']`);
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+  };
+
   // Animación al ocurrir transición
   useEffect(() => {
     if (!controller) return;
 
     controller.onTransition = ({ process, fromState, toState, reason }) => {
       console.log(`Transition: ${process?.pid} from ${fromState} to ${toState} - ${reason}`);
-      
+
       if (!process) return;
 
       // Si es creación de proceso (fromState es null), solo actualizar nodos
-      if (fromState === null && toState === 'New') {
-        console.log(`New process created: ${process.pid}`);
+      if (fromState === null && toState === "New") {
         updateNodesData();
         return;
       }
 
-      // Para transiciones normales, hacer animación
-      const fromPos = nodes.find(n => n.id === fromState)?.position;
-      const toPos = nodes.find(n => n.id === toState)?.position;
-      
-      if (!fromPos || !toPos) {
-        // Si no hay posiciones para animar, solo actualizar datos
-        updateNodesData();
-        return;
-      }
-
-      // Agregar logo animado
-      setAnimatedLogos(prev => [
-        ...prev.filter(l => l.pid !== process.pid), // Remove existing animation for this process
-        {
-          pid: process.pid,
-          logo: process.logo,
-          start: { x: fromPos.x + 60, y: fromPos.y + 40 }, // Offset para centrar mejor
-          end: { x: toPos.x + 60, y: toPos.y + 40 },
-        }
-      ]);
-
-      // Actualizar nodos después de la animación
+      // Colorear temporalmente la arista activa
+      setEdges((eds) =>
+        eds.map((edge) =>
+          edge.source === fromState && edge.target === toState
+            ? {
+                ...edge,
+                style: { stroke: "#16a34a", strokeWidth: 3 },
+                markerEnd: { ...edge.markerEnd, color: "#16a34a" },
+              }
+            : edge
+        )
+      );
+      // Revertir a rojo después de 1s
       setTimeout(() => {
-        updateNodesData();
-        setAnimatedLogos(prev => prev.filter(l => l.pid !== process.pid));
-      }, 800);
+        setEdges((eds) =>
+          eds.map((edge) =>
+            edge.source === fromState && edge.target === toState
+              ? {
+                  ...edge,
+                  style: { stroke: "#ca1212", strokeWidth: 2 },
+                  markerEnd: { ...edge.markerEnd, color: "#ca1212" },
+                }
+              : edge
+          )
+        );
+      }, 1000);
+
+      // Esperar dos frames para animación de logo
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const fromViewport = getNodeViewportCenter(fromState);
+          const toViewport = getNodeViewportCenter(toState);
+
+          if (!fromViewport || !toViewport || !containerRef.current) {
+            updateNodesData();
+            return;
+          }
+
+          const containerRect = containerRef.current.getBoundingClientRect();
+          const start = {
+            x: fromViewport.x - containerRect.left,
+            y: fromViewport.y - containerRect.top,
+          };
+          const end = {
+            x: toViewport.x - containerRect.left,
+            y: toViewport.y - containerRect.top,
+          };
+
+          setAnimatedLogos((prev) => [
+            ...prev.filter((l) => l.pid !== process.pid),
+            {
+              pid: process.pid,
+              logo: process.logo,
+              start,
+              end,
+            },
+          ]);
+
+          setTimeout(() => {
+            updateNodesData();
+            setAnimatedLogos((prev) => prev.filter((l) => l.pid !== process.pid));
+          }, 800);
+        });
+      });
     };
 
-    // Cleanup function
     return () => {
-      if (controller) {
-        controller.onTransition = null;
-      }
+      if (controller) controller.onTransition = null;
     };
   }, [controller, nodes]);
 
   return (
-    <div style={{ width: "100%", height: "600px", position: "relative" }}>
+    <div ref={containerRef} style={{ width: "100%", height: "600px", position: "relative" }}>
       <ReactFlow
         nodes={nodes}
-        edges={EDGES}
+        edges={edges}
         nodeTypes={nodeTypes}
         fitView
         onNodesChange={onNodesChange}
@@ -145,12 +192,12 @@ const StateDiagramComponent = ({ nodesData, onTransition, controller, nodePositi
 
       {animatedLogos.map(({ pid, logo, start, end }) => (
         <AnimatedLogo
-          key={`${pid}-${Date.now()}`} // Unique key to avoid conflicts
+          key={pid}
           logo={logo}
           start={start}
           end={end}
           duration={0.8}
-          onComplete={() => setAnimatedLogos(prev => prev.filter(l => l.pid !== pid))}
+          onComplete={() => setAnimatedLogos((prev) => prev.filter((l) => l.pid !== pid))}
         />
       ))}
     </div>

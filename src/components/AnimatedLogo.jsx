@@ -50,14 +50,14 @@ const AnimatedLogo = ({
         boxShadow: "0 2px 8px rgba(0,0,0,0.2)", // Sombra para destacar
       }}
       initial={{ 
-        x: start.x + 60, 
-        y: start.y + 60,
+        x: start.x, // Pequeño offset inicial si hay movimiento
+        y: start.y,
         opacity: 0,
         scale: 0.8
       }}
       animate={{ 
-        x: end.x + 80, 
-        y: end.y + 60,
+        x: end.x, 
+        y: end.y,
         opacity: 1,
         scale: 1
       }}
