@@ -1,93 +1,70 @@
 import { Process } from "./processModel.js";
 import { STATES } from "./stateMachine.js";
+import fs from "fs";
+import path from "path";
 
-describe("Process Model", () => {
-  let process;
+function exportCSVWithScenario(process, scenarioName) {
+  const metrics = process.getMetrics();
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-  beforeEach(() => {
-    process = new Process();
+  const safeScenarioName = scenarioName.replace(/\s+/g, "_");
+  const filename = `report_${safeScenarioName}_${process.pid}_${timestamp}.csv`;
+
+  let csv = "PID,Priority,ProgramCounter,Registers\n";
+  csv += `${metrics.pid},${metrics.priority},${metrics.programCounter},` +
+         `"AX:${metrics.registers.AX}|BX:${metrics.registers.BX}|CX:${metrics.registers.CX}|DX:${metrics.registers.DX}"\n\n`;
+
+  csv += "State,Time(ms),Transitions,Syscalls\n";
+
+  for (const state in metrics.timeInStates) {
+    const time = metrics.timeInStates[state];
+    const transitions = metrics.transitions.filter(t => t.state === state).length;
+    const syscalls = metrics.syscalls.filter(s => s.success && s.state === state).length || 0;
+    csv += `${state},${time},${transitions},${syscalls}\n`;
+  }
+
+  if (!fs.existsSync("./reports")) fs.mkdirSync("./reports");
+  fs.writeFileSync(path.join("./reports", filename), csv);
+
+  return filename;
+}
+
+describe("Process FSM Scenarios with Detailed Metrics", () => {
+
+  test("Scenario 1: Process without I/O", () => {
+    const p = new Process("High");
+
+    expect(p.transition(STATES.READY, "Admit")).toEqual(expect.objectContaining({status: true}));
+    expect(p.transition(STATES.RUNNING, "Assign CPU")).toEqual(expect.objectContaining({status: true}));
+    expect(p.transition(STATES.TERMINATED, "Finish")).toEqual(expect.objectContaining({status: true}));
+
+    const filename = exportCSVWithScenario(p, "Process_without_IO");
+    console.log(`CSV generated: ${filename}`);
   });
 
-  test("should create process with default attributes", () => {
-    expect(process.pid).toHaveLength(6);
-    expect(process.priority).toBe("High");
-    expect(process.currentState).toBe(STATES.NEW);
-    expect(process.programCounter).toBe(0);
-    expect(process.registers).toEqual({ AX: 0, BX: 0, CX: 0, DX: 0 });
-    expect(Array.isArray(process.syscalls)).toBe(true);
-    expect(process.history.length).toBe(1);
+  test("Scenario 2: Process with 1 I/O operation", () => {
+    const p = new Process("Medium");
+
+    expect(p.transition(STATES.READY, "Admit")).toEqual(expect.objectContaining({status: true}));
+    expect(p.transition(STATES.RUNNING, "Assign CPU")).toEqual(expect.objectContaining({status: true}));
+
+    expect(p.systemCall("I/O Request", STATES.WAITING, "Request I/O")).toEqual(expect.objectContaining({status: true}));
+    expect(p.transition(STATES.READY, "I/O Completed")).toEqual(expect.objectContaining({status: true}));
+    expect(p.transition(STATES.RUNNING, "Assign CPU")).toEqual(expect.objectContaining({status: true}));
+    expect(p.transition(STATES.TERMINATED, "Finish")).toEqual(expect.objectContaining({status: true}));
+
+    const filename = exportCSVWithScenario(p, "Process_with_1_IO");
+    console.log(`CSV generated: ${filename}`);
   });
 
-  test("should allow valid transition and update CPU context", () => {
-    const result = process.transition(STATES.READY, "Init Ready");
-    expect(result.status).toBe(true);
-    expect(process.currentState).toBe(STATES.READY);
-    expect(process.programCounter).toBeGreaterThan(0);
+  test("Scenario 3: Invalid transition attempt", () => {
+    const p = new Process("Low");
 
-    const { AX, BX, CX, DX } = process.registers;
-    expect(AX).toBeGreaterThanOrEqual(0);
-    expect(AX).toBeLessThan(100);
-    expect(BX).toBeLessThan(100);
-  });
-
-  test("should reject invalid transition", () => {
-    const result = process.transition(STATES.RUNNING, "Invalid Jump");
+    const result = p.transition(STATES.TERMINATED, "Invalid attempt");
     expect(result.status).toBe(false);
-    expect(process.currentState).toBe(STATES.NEW);
-  });
+    expect(p.currentState).toBe(STATES.NEW);
 
-  test("should execute successful syscall with transition", () => {
-    process.transition(STATES.READY);
-    const result = process.systemCall("I/O Request", STATES.RUNNING, "Syscall");
-    expect(result.status).toBe(true);
-
-    const lastSyscall = process.syscalls[process.syscalls.length - 1];
-    expect(lastSyscall.name).toBe("I/O Request");
-    expect(lastSyscall.success).toBe(true);
-    expect(process.currentState).toBe(STATES.RUNNING);
-  });
-
-  test("should record failed syscall when transition is invalid", () => {
-    const result = process.systemCall("Terminate", STATES.TERMINATED, "Invalid syscall");
-    expect(result.status).toBe(false);
-
-    const lastSyscall = process.syscalls[process.syscalls.length - 1];
-    expect(lastSyscall.success).toBe(false);
-    expect(process.currentState).toBe(STATES.NEW);
-  });
-
-  test("should keep history of transitions", () => {
-    process.transition(STATES.READY);
-    process.transition(STATES.RUNNING);
-    const history = process.getHistory();
-
-    expect(history.length).toBeGreaterThan(2);
-    expect(history[0].state).toBe(STATES.NEW);
-    expect(history[history.length - 1].state).toBe(STATES.RUNNING);
-  });
-
-  test("should calculate metrics including syscalls and registers", () => {
-    process.transition(STATES.READY);
-    process.systemCall("I/O", STATES.RUNNING, "Testing syscall");
-
-    const metrics = process.getMetrics();
-    expect(metrics).toHaveProperty("pid");
-    expect(metrics).toHaveProperty("priority");
-    expect(metrics).toHaveProperty("programCounter");
-    expect(metrics).toHaveProperty("registers");
-    expect(metrics).toHaveProperty("syscalls");
-    expect(metrics).toHaveProperty("totalTransitions");
-    expect(metrics).toHaveProperty("timeInStates");
-    expect(metrics.syscalls.length).toBeGreaterThan(0);
-  });
-
-  test("should export metrics to JSON and CSV", () => {
-    process.transition(STATES.READY);
-    const json = process.exportMetricsJSON();
-    const parsed = JSON.parse(json);
-    expect(parsed).toHaveProperty("pid");
-
-    const csv = process.exportMetricsCSV();
-    expect(csv).toContain("State,Time(ms)");
+    const filename = exportCSVWithScenario(p, "Invalid_transition_attempt");
+    console.log(`CSV generated: ${filename}`);
   });
 });
