@@ -21,9 +21,9 @@ function App() {
   const [nodePositions] = useState(initialNodePositions);
 
   const updateProcesses = () => {
-  const updated = simulationController.getProcesses().map((p) => ({ ...p }));
-  setProcesses(updated);
-};
+    const updated = simulationController.getProcesses().map((p) => ({ ...p }));
+    setProcesses(updated);
+  };
 
   const handleTransition = (pid, controllerMethod) => {
     const processesBefore = simulationController.getProcesses();
@@ -53,10 +53,6 @@ function App() {
   const handleClearSimulation = () => {
     simulationController.pauseSimulation();
     simulationController.clearProcesses();
-
-    console.log(simulationController.getProcesses()); // Debería estar vacío
-
-
     updateProcesses();
   };
 
@@ -124,7 +120,7 @@ function App() {
           <button onClick={handleResumeSimulation} title="Resume">
             <FaStepForward />
           </button>
-        </div>
+        </div>      
         <div className="operation-buttons">
           <button onClick={handleCreateProcess}>New Process</button>
           <button onClick={handleViewReports}>View Reports</button>
@@ -143,7 +139,7 @@ function App() {
           nodePositions={nodePositions}
           onTransition={handleTransition}
           controller={simulationController}
-          showTechnicalDetails={showTechnicalDetails}          
+          showTechnicalDetails={showTechnicalDetails}
         />
         {showReports && (
           <ProcessReports

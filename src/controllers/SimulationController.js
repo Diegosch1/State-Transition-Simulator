@@ -138,8 +138,7 @@ export class SimulationController {
     const activeProcesses = processes.filter(p => p.currentState !== STATES.TERMINATED);
 
     if (this.isPaused) return;
-    if (activeProcesses.length === 0) {
-      console.log("All processes are TERMINATED. Pausing simulation.");
+    if (activeProcesses.length === 0) {      
       this.pauseSimulation();
       return;
     }
@@ -181,11 +180,11 @@ export class SimulationController {
       case STATES.RUNNING:
         const rand = Math.random();
         if (rand < 0.15) {
-          reason = "Automatic: I/O Request";
-          result = this.requestIO(process.pid);
-        } else if (rand < 0.85) {
           reason = "Automatic: Process Finished";
           result = this.terminateProcess(process.pid);
+        } else if (rand < 0.85) {
+          reason = "Automatic: I/O Request";
+          result = this.requestIO(process.pid);
         } else {
           reason = "Automatic: Quantum Expired";
           result = this.preemptProcess(process.pid);
