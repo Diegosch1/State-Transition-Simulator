@@ -95,8 +95,7 @@ const StateDiagramComponent = ({ nodesData, onTransition, controller, nodePositi
   useEffect(() => {
     if (!controller) return;
 
-    controller.onTransition = ({ process, fromState, toState, reason }) => {
-      console.log(`Transition: ${process?.pid} from ${fromState} to ${toState} - ${reason}`);
+    controller.onTransition = ({ process, fromState, toState, reason }) => {      
 
       if (!process) return;
 
