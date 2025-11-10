@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import StateDiagramComponent from "./components/state_diagram/StateDiagramComponent";
 import { SimulationController } from "./controllers/SimulationController";
 import ProcessReports from "./components/process_report/ProcessReport";
 import { FaPlay, FaPause, FaStepForward } from "react-icons/fa";
 import "./App.css";
 import { STATES } from "./core/stateMachine";
+import MemoryView from "./components/memory_view/MemoryView";
 
 const simulationController = new SimulationController();
 
@@ -18,6 +19,19 @@ const initialNodePositions = {
 
 function App() {
   const [processes, setProcesses] = useState([]);
+  const [memoryState, setMemoryState] = useState(simulationController.memoryManager.getMemoryState());
+
+  useEffect(() => {
+    simulationController.onMemoryChange = (newState) => {
+      setMemoryState({ ...newState });
+    };
+
+    // Limpieza opcional
+    return () => {
+      simulationController.onMemoryChange = null;
+    };
+  }, []);
+
   const [nodePositions] = useState(initialNodePositions);
 
   const updateProcesses = () => {
@@ -44,22 +58,32 @@ function App() {
         fromState,
         toState,
         reason: "Manual transition",
+        memoryState: simulationController.memoryManager.getMemoryState(),
       });
     }
 
     updateProcesses();
   };
 
+  // --- Configurar callback de transiciones ---
+  useEffect(() => {
+    simulationController.onTransition = ({ process, memoryState }) => {
+      updateProcesses();
+      setMemoryState(memoryState); // actualiza memoria en cada transición
+    };
+  }, []);
+
   const handleClearSimulation = () => {
     simulationController.pauseSimulation();
     simulationController.clearProcesses();
     updateProcesses();
+    setMemoryState({ ram: [], disk: [] });
   };
-
 
   const handleCreateProcess = () => {
     simulationController.createProcess();
     updateProcesses();
+    setMemoryState(simulationController.memoryManager.getMemoryState());
   };
 
   const handleStartSimulation = () => {
@@ -79,9 +103,7 @@ function App() {
 
   const processesByState = processes.reduce((acc, process) => {
     const state = process.currentState;
-    if (!acc[state]) {
-      acc[state] = [];
-    }
+    if (!acc[state]) acc[state] = [];
     acc[state].push(process);
     return acc;
   }, {});
@@ -98,12 +120,9 @@ function App() {
   const handleCloseReports = () => setShowReports(false);
 
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
-  // App.jsx
-  // const [isPaused, setIsPaused] = useState(simulationController.getIsPaused()); // ✅ bien inicializado
-
 
   const toggleTechnicalDetails = () => {
-    setShowTechnicalDetails((prev) => !prev);
+    setShowTechnicalDetails(prev => !prev);
   };
 
   return (
@@ -120,7 +139,7 @@ function App() {
           <button onClick={handleResumeSimulation} title="Resume">
             <FaStepForward />
           </button>
-        </div>      
+        </div>
         <div className="operation-buttons">
           <button onClick={handleCreateProcess}>New Process</button>
           <button onClick={handleViewReports}>View Reports</button>
@@ -129,6 +148,8 @@ function App() {
           </button>
           <button onClick={handleClearSimulation}>Clear Simulation</button>
         </div>
+        
+        <MemoryView memoryState={memoryState} />
       </div>
 
       <div className="main-content">
@@ -150,7 +171,6 @@ function App() {
       </div>
     </div>
   );
-
 }
 
 export default App;

@@ -57,7 +57,7 @@ export default function ProcessItem({ process, onTransition, controller, showTec
         <button onClick={() => onTransition(process.pid, controller.completeIO.bind(controller))}>
           Liberar E/S
         </button>
-      )}
+      )}      
 
     </li>
   );
