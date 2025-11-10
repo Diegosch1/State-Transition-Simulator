@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 export class Process {
   constructor(priority = "High", controller = null) {
     this.pid = uuidv4().slice(0, 6);
+    this.memorySize = Math.floor(Math.random() * 5) + 1; // 1-5 páginas
+    this.allocatedPages = []; // Páginas que tiene en memoria
     this.currentState = STATES.NEW;
     this.priority = priority;
     this.programCounter = 0;
@@ -14,7 +16,7 @@ export class Process {
     ];
     const logoIndex = Math.floor(Math.random() * 34) + 1;
     this.logo = `/logos/${logoIndex}.svg`;
-    
+
     // referencia al controlador para saber si está en pausa
     this.controller = controller;
   }
@@ -104,6 +106,16 @@ export class Process {
   exportMetricsJSON() {
     return JSON.stringify(this.getMetrics(), null, 2);
   }
+
+  allocateMemory(memoryManager) {
+    memoryManager.loadProcessMemory(this.pid, this.memorySize);
+    this.allocatedPages = Array.from({ length: this.memorySize }, (_, i) => i);
+  }
+
+  accessMemory(memoryManager) {
+    this.allocatedPages.forEach(pid => memoryManager.accessPage(this.pid));
+  }
+
 
   exportMetricsCSV() {
     const metrics = this.getMetrics();

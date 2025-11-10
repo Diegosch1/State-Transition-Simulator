@@ -1,5 +1,6 @@
 import { ProcessManager } from './processManager';
 import { STATES } from '../core/stateMachine';
+import { MemoryManager } from '../core/memory/MemoryManager.js';
 
 export class SimulationController {
   constructor() {
@@ -10,15 +11,27 @@ export class SimulationController {
     this.onTransition = null; // función callback para UI
     this.logoCount = 34; // cantidad de logos en la carpeta
     this.newProcessQueue = new Set(); // procesos en NEW que esperan render
+    this.memoryManager = new MemoryManager(10, 100);
   }
 
   // --- Métodos de gestión de procesos ---
   createProcess() {
     const process = this.processManager.createProcess(this);
 
-    // Asignar un logo aleatorio al proceso
     const logoIndex = Math.floor(Math.random() * this.logoCount) + 1;
     process.logo = `/logos/${logoIndex}.svg`;
+
+    process.allocateMemory(this.memoryManager);
+    this.updateMemoryState();
+
+    if (typeof this.onMemoryChange === "function") {
+      this.onMemoryChange({
+        ...this.memoryManager.getMemoryState(),
+        lruPid: this.memoryManager.getLeastRecentlyUsedProcess(),
+      });
+    }
+
+    // Asignar un logo aleatorio al proceso
 
     return process.pid;
   }
@@ -45,12 +58,24 @@ export class SimulationController {
   assignCPU(pid) {
     const process = this.processManager.getProcess(pid);
     if (!process) return { status: false, message: "Process not found." };
+
+    process.accessMemory(this.memoryManager);
+    this.updateMemoryState();
+
+    if (typeof this.onMemoryChange === "function") {
+      this.onMemoryChange({
+        ...this.memoryManager.getMemoryState(),
+        lruPid: this.memoryManager.getLeastRecentlyUsedProcess(),
+      });
+    }
+
     return process.transition(STATES.RUNNING, "CPU assigned");
   }
 
   requestIO(pid) {
     const process = this.processManager.getProcess(pid);
     if (!process) return { status: false, message: "Process not found." };
+    process.accessMemory(this.memoryManager);
     return process.systemCall('I/O Request', STATES.WAITING, "I/O requested");
   }
 
@@ -69,8 +94,26 @@ export class SimulationController {
   terminateProcess(pid) {
     const process = this.processManager.getProcess(pid);
     if (!process) return { status: false, message: "Process not found." };
-    return process.transition(STATES.TERMINATED, "Process finished");
+
+    // 🧹 1️⃣ Liberar todas las páginas del proceso
+    this.memoryManager.ram = this.memoryManager.ram.filter(page => page.pid !== pid);
+    this.memoryManager.disk = this.memoryManager.disk.filter(page => page.pid !== pid);
+
+    // 🔄 2️⃣ Actualizar el estado del proceso
+    const result = process.transition(STATES.TERMINATED, "Process finished");
+
+    // 🧠 3️⃣ Actualizar la memoria visual
+    this.updateMemoryState();
+    if (typeof this.onMemoryChange === "function") {
+      this.onMemoryChange({
+        ...this.memoryManager.getMemoryState(),
+        lruPid: this.memoryManager.getLeastRecentlyUsedProcess(),
+      });
+    }
+
+    return result;
   }
+
 
   // --- Control de simulación ---
   async startSimulation() {
@@ -114,7 +157,7 @@ export class SimulationController {
     }
   }
 
-  getIsPaused(){
+  getIsPaused() {
     return this.isPaused;
   }
 
@@ -126,7 +169,7 @@ export class SimulationController {
     this.processGeneratorTimeout = setTimeout(() => {
       if (!this.isPaused) {
         const pid = this.createProcess();
-        this.notifyNewProcess(pid);        
+        this.notifyNewProcess(pid);
         this.scheduleRandomProcess();
       }
     }, delay);
@@ -138,7 +181,7 @@ export class SimulationController {
     const activeProcesses = processes.filter(p => p.currentState !== STATES.TERMINATED);
 
     if (this.isPaused) return;
-    if (activeProcesses.length === 0) {      
+    if (activeProcesses.length === 0) {
       this.pauseSimulation();
       return;
     }
@@ -206,7 +249,8 @@ export class SimulationController {
           fromState,
           toState: fullProcess.currentState,
           reason,
-          timestamp: new Date()
+          timestamp: new Date(),
+          memoryState: this.memoryManager.getMemoryState(),
         });
       }
     }
@@ -226,6 +270,7 @@ export class SimulationController {
         toState: STATES.NEW,
         reason: "Process created",
         timestamp: new Date(),
+        memoryState: this.memoryManager.getMemoryState(),
       });
     }
   }
@@ -233,8 +278,16 @@ export class SimulationController {
   generateReport() {
     const reports = {};
     this.processManager.getAllProcesses().forEach(process => {
-      reports[process.pid] = process.getMetrics();
+      reports[process.pid] = {
+        metrics: process.getMetrics(),
+        memoryState: this.memoryManager.getMemoryState(),
+      };
     });
     return reports;
+  }
+
+  updateMemoryState() {
+    const processes = this.processManager.getAllProcesses();
+    this.memoryManager.setProcesses(processes);
   }
 }
